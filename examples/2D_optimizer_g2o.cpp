@@ -77,9 +77,9 @@ int main(int argc, char** argv)
 
 	SlamLinearSolver* linearSolver = new SlamLinearSolver();
 	linearSolver->setBlockOrdering(false);
-	SlamBlockSolver* blockSolver = new SlamBlockSolver(linearSolver);
-	g2o::OptimizationAlgorithmGaussNewton* solverGauss   = new g2o::OptimizationAlgorithmGaussNewton(blockSolver);
-
+	SlamBlockSolver* blockSolver = new SlamBlockSolver(std::unique_ptr<g2o::LinearSolver<SlamBlockSolver::PoseMatrixType>>(linearSolver));
+	g2o::OptimizationAlgorithmGaussNewton* solverGauss   = new g2o::OptimizationAlgorithmGaussNewton(std::unique_ptr<g2o::Solver>(blockSolver));
+		
 	optimizer.setAlgorithm(solverGauss);
 
 	/* load the graph file in the optimizer */
