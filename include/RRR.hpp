@@ -32,6 +32,8 @@
 #include <iostream>
 #include <algorithm>
 #include <numeric>
+#include <chrono>
+
 
 #include "g2o_Interface.hpp"
 #include "cluster.hpp"
@@ -97,8 +99,17 @@ public:
 	{
 		IntPairDoubleMap chi2LinkErrors;
 		IntPairSet& currentCluster = clusterizer.getClusterByID(clusterID);
+		  
+		// ctime() used to give the present time 
+		auto start = std::chrono::steady_clock::now();
+
+		
 
 		chi2LinkErrors = gWrapper->optimize(currentCluster, nIterations);
+
+		auto end = std::chrono::steady_clock::now();
+		auto diff = end - start;
+		std::cout << std::chrono::duration <double, std::milli> (diff).count() << " ms" << std::endl;
 
 		float activeChi2Graph = chi2LinkErrors[IntPair(-1,0)];
 		int   activeEdgeCount = chi2LinkErrors[IntPair(-1,-1)];
@@ -132,6 +143,7 @@ public:
 			//std::cerr<<" Cluster "<<clusterID<<" has been eliminated!"<<std::endl;
 			return false;
 		}
+		
 
 		return false;
 
@@ -257,6 +269,14 @@ public:
 			{
 				consistentClusters.insert(i);
 			}
+		}
+		std::cout<<"done"<<std::endl<<std::endl;
+		
+		/// prints the consistent Clusters
+		std::cout<<"Self-consistent clusters: "<<std::endl;
+		for(int cluster_id : consistentClusters)
+		{
+			std::cout<< cluster_id <<" ";
 		}
 		std::cout<<"done"<<std::endl<<std::endl;
 
