@@ -101,48 +101,55 @@ public:
 		IntPairSet& currentCluster = clusterizer.getClusterByID(clusterID);
 		  
 		// ctime() used to give the present time 
-		auto start = std::chrono::steady_clock::now();
 
-		
 
 		chi2LinkErrors = gWrapper->optimize(currentCluster, nIterations);
 
-		auto end = std::chrono::steady_clock::now();
-		auto diff = end - start;
-		std::cout << std::chrono::duration <double, std::milli> (diff).count() << " ms" << std::endl;
 
 		float activeChi2Graph = chi2LinkErrors[IntPair(-1,0)];
 		int   activeEdgeCount = chi2LinkErrors[IntPair(-1,-1)];
 
-		if( activeChi2Graph < utils::chi2(edgeDimension* activeEdgeCount))
+		//if( activeChi2Graph < utils::chi2(edgeDimension* activeEdgeCount)) // conduct test for every cluster, despite the cluster error
 		{
 			IntPairDoubleMap::iterator eIt = chi2LinkErrors.begin(), eEnd=chi2LinkErrors.end();
+			// chi2LinkErrors.begin() gives the (-1, -1, number_of_edges)
 			//IntPairSet::iterator it = currentCluster.begin(), end = currentCluster.end();
+            std::cout<<" Cluster "<<clusterID<<" started with "<<currentCluster.size()<<" links "<<std::endl;
 			for(; eIt!=eEnd; eIt++)
 			{
 				if(eIt->second > utils::chi2(edgeDimension))
 				{
-					clusterizer.setClusterID(eIt->first,ID_IGNORE);
+				    clusterizer.setClusterID(eIt->first,ID_IGNORE);
+					if (eIt->first.first != -1) {// chi2LinkErrors.begin() returns the (-1, -1, number_of_edges)
+                        std::cout << "REJECTED: " << eIt->first.first << " " << eIt->first.second << std::endl;
+                        std::cout << "Edge error: " << eIt->second << " > " << utils::chi2(edgeDimension) << std::endl;
+                        std::cout << "Edge dimension: " << edgeDimension << std::endl;
+
+					}
+
 				}
 			}
 
 			if(!currentCluster.empty())
 			{
-				//std::cerr<<" Cluster "<<clusterID<<" survived with "<<currentCluster.size()<<" links "<<std::endl;
+				std::cerr<<" Cluster "<<clusterID<<" survived with "<<currentCluster.size()<<" links "<<std::endl;
 				return true;
 			}
 			else
 			{
-				//std::cerr<<" Cluster "<<clusterID<<" has been emptied!"<<std::endl;
+				std::cerr<<" Cluster "<<clusterID<<" has been emptied!"<<std::endl;
 				return false;
 			}
 
 		}
-		else
-		{
-			//std::cerr<<" Cluster "<<clusterID<<" has been eliminated!"<<std::endl;
-			return false;
-		}
+		//else
+		//{
+            //std::cerr<<" Cluster "<<clusterID<<" has been eliminated!"<<std::endl;
+			//std::cout<<" actual chi2 errror: " << activeChi2Graph << std::endl;
+			//std::cout<<"dof: " << edgeDimension* activeEdgeCount << std::endl;
+			//std::cout<<"chi2 threshold: " << utils::chi2(edgeDimension* activeEdgeCount) << std::endl;
+			//return false;
+		//}
 		
 
 		return false;
@@ -217,7 +224,7 @@ public:
 					int thisLinkClusterID = clusterizer.getClusterID(it->first);
 					errorMap[thisLinkClusterID]	+= it->second;
 				}
-			}
+			}// errorMap stores the combined chi2 error of eges for all clusters
 
 			IntSet::iterator sIt = H.begin(), sEnd = H.end();
 
@@ -261,7 +268,18 @@ public:
 
 		
 		std::cout<<"Number of Clusters found : "<<clusterizer.clusterCount()<<std::endl;
+		std::cout<<"print all clusters: " << std::endl;
+		for(size_t i=0; i< clusterizer.clusterCount(); i++)
+        {
+		    IntPairSet tempset = clusterizer.getClusterByID(i);
+		    for (IntPairSet::iterator temppair = tempset.begin(); temppair != tempset.end(); temppair++)
+            {
+                std::cout<<i<<": " << temppair->first << " " << temppair->second << std::endl;
+            }
+
+        }
 		std::cout<<"Checking Intra cluster consistency : "<<std::endl;
+        auto start = std::chrono::steady_clock::now();
 		for(size_t i=0; i< clusterizer.clusterCount(); i++)
 		{
 			std::cout<<i<<" "; std::cout.flush();
@@ -271,6 +289,10 @@ public:
 			}
 		}
 		std::cout<<"done"<<std::endl<<std::endl;
+        auto end = std::chrono::steady_clock::now();
+        auto diff = end - start;
+        std::cout << std::chrono::duration <double, std::milli> (diff).count() << " ms" << std::endl;
+        std::cout << "" << std::endl;
 		
 		/// prints the consistent Clusters
 		std::cout<<"Self-consistent clusters: "<<std::endl;
@@ -282,6 +304,8 @@ public:
 
 		/// ------------- consistentCluster are self-consistent --------- ////
 
+        std::cout<<"Checking Inter cluster consistency : "<<std::endl;
+        auto startt = std::chrono::steady_clock::now();
 
 		bool done = false;
 		while(!done)
@@ -341,6 +365,10 @@ public:
 			std::cout<<(*it)<<" ";
 		}
 		std::cout<<std::endl;
+        auto endd = std::chrono::steady_clock::now();
+        auto difff = endd - startt;
+        std::cout << std::chrono::duration <double, std::milli> (difff).count() << " ms" << std::endl;
+
 
 		_goodSet.insert(goodSet.begin(),goodSet.end());
 
